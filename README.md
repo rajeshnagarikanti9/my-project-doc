@@ -1,2 +1,2 @@
 # my-project-doc
-This is for Educational Purpose
+My Linux tasks documents
