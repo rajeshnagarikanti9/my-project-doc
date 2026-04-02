@@ -1,168 +1,114 @@
-Highly Available 3-Tier Web Application on AWS 
-  
- Project Overview 
-This project demonstrates the deployment of a highly available, scalable, and secure 3-tier web application on AWS. 
-The architecture is designed to: 
-•	Handle traffic spikes (auto scaling)  
-•	Ensure high availability (multi-AZ)  
-•	Provide secure access (HTTPS)  
-•	Separate concerns using 3-tier design  
-  
-Objectives 
-•	Deploy infrastructure across multiple Availability Zones  
-•	Configure Auto Scaling Group (ASG)  
-•	Use Application Load Balancer (ALB) for traffic distribution  
-•	Store static content in S3  
-•	Secure application using HTTPS  
-•	Implement secure access using Bastion Host  
-•	Enable EBS encryption using KMS  
- 
-Architecture Diagram (Explain in words) 
-Flow: 
-User → ALB (HTTPS) → Target Group → EC2 (ASG in Private Subnets) 
-                                     ↓ 
-                                   EBS 
-                                     ↓ 
-                                    S3 
-                 → Access Private EC2 
- 
- 
+Serverless Media Processing Pipeline on AWS
+
+1. Introduction
+In this project, I developed a serverless media processing pipeline using AWS services. The system is designed to automatically process images uploaded by users without requiring any manual intervention or server management.
+Whenever an image is uploaded, the system resizes it and adds a watermark before storing it in a separate location. This ensures efficient handling of large-scale media uploads in a scalable and cost-effective manner.
+
+
+2. Objective
+The main objective of this project is to build an automated pipeline that:
+•	Accepts image uploads securely 
+•	Processes images using AWS Lambda 
+•	Stores processed images separately 
+•	Optimizes storage costs using lifecycle rules 
+•	Ensures data durability with cross-region replication 
+•	Supports scalable and event-driven architecture 
+
+
+3. Architecture Overview
+The system follows an event-driven workflow:
+•	The user uploads an image to an S3 bucket 
+•	The upload triggers a Lambda function 
+•	The Lambda function resizes the image and adds a watermark 
+•	The processed image is stored in another S3 bucket 
+•	The image can be delivered globally using CloudFront 
 
 
 
-Infrastructure Setup 
-VPC Configuration 
-•	Created VPC with CIDR: 10.0.0.0/16  
 
-  <img width="940" height="424" alt="image" src="https://github.com/user-attachments/assets/c372f0ff-0662-4256-a6e9-f4d669d742f9" />
+4. AWS Services Used
+The following AWS services were used in this project:
+•	Amazon S3 (for storage) 
+•	AWS Lambda (for processing images) 
+•	Lambda Layers (Pillow library) 
+•	S3 Lifecycle Rules (for cost optimization) 
+•	S3 Cross-Region Replication (for durability) 
+•	CloudFront (for global delivery – optional) 
+•	SQS DLQ (for error handling – optional) 
 
-Subnets 
-•	Public Subnets:  
-o	10.0.1.0/24 (AZ-1a)  
-o	10.0.2.0/24 (AZ-1b)  
-•	Private Subnets:  
-o	10.0.3.0/24 (AZ-1a)  
-o	10.0.4.0/24 (AZ-1b)  
-<img width="940" height="405" alt="image" src="https://github.com/user-attachments/assets/7b8ee0e4-1fe0-4113-ab62-ed8441a2b851" />
 
-  
-Route Tables 
-•	Public Route Table 
-o	Route: 0.0.0.0/0 → Internet Gateway  
-o	Associated with Public Subnets  
-•	Private Route Table 
-o	Route: 0.0.0.0/0 → NAT Gateway  
-o	Associated with Private Subnets  
-  <img width="940" height="405" alt="image" src="https://github.com/user-attachments/assets/773bfed0-72a6-4bae-9493-88ae577b33c3" />
+5. Implementation Steps
 
- Internet & NAT Setup 
-•	Internet Gateway attached to VPC  
-•	NAT Gateway created in Public Subnet  
-  <img width="940" height="318" alt="image" src="https://github.com/user-attachments/assets/e2e2f077-de99-4a93-babb-096cf0ce768d" />
+Step 1: Creating the Raw Upload Bucket
+An S3 bucket was created to store incoming images.
+•	Versioning enabled 
+•	SSE-S3 encryption enabled 
+•	CORS configured for uploads 
 
- Golden AMI 
-•	Installed Apache/Nginx  
-•	Deployed application code  
-•	Created reusable AMI for consistency  
-  <img width="940" height="388" alt="image" src="https://github.com/user-attachments/assets/3b3e9569-ae99-4260-8c0b-dd79f5bacf6b" />
+Step 2: Creating the Processed Images Bucket
+A second S3 bucket was created to store processed images.
+•	SSE-KMS encryption enabled 
 
- Launch Template 
-•	Instance Type: t3.micro  
-•	AMI: Golden AMI  
-•	Security Group attached  
-•	Configured User Data for automation  
-  <img width="940" height="402" alt="image" src="https://github.com/user-attachments/assets/a394487b-9b0b-4323-b83a-9e60ce6d4194" />
+Step 3: Configuring Cross-Region Replication
+Cross-region replication was configured to replicate data to another region for backup and disaster recovery.
 
-Storage Layer 
- EBS Configuration 
-•	Volume Type: gp3  
-•	Size: 20 GB  
-•	Encryption enabled using AWS Key Management Service  
-  <img width="940" height="397" alt="image" src="https://github.com/user-attachments/assets/7d27a011-e7bc-4a5d-b99d-2d8e08a37a09" />
 
- S3 Configuration 
-Used Amazon S3 for: 
-•	Static files (images, CSS, JS)  
-Features: 
-•	Versioning enabled  
-•	Highly durable storage  
-  <img width="940" height="377" alt="image" src="https://github.com/user-attachments/assets/b5961013-c4e9-446d-bedc-9f204ca0005e" />
 
- 
- Target Group 
-•	Protocol: HTTP  
-•	Port: 80  
-•	Health checks enabled  
-  <img width="940" height="300" alt="image" src="https://github.com/user-attachments/assets/27d93361-d0f4-4808-b0ce-cb833490b506" />
+Step 4: Setting Lifecycle Rules
+Lifecycle rules were added to reduce storage costs:
+•	30 days → Standard-IA 
+•	90 days → Glacier 
+•	365 days → Delete 
 
- Load Balancer Layer 
- Application Load Balancer (ALB) 
-•	Type: Internet-facing  
-•	Deployed in Public Subnets  
-  <img width="940" height="403" alt="image" src="https://github.com/user-attachments/assets/598f8c33-485b-4656-9198-71f2920bacca" />
 
-Auto Scaling Group (ASG) 
-•	Min: 2 | Desired: 2 | Max: 4  
-•	Deployed in Private Subnets across 2 AZs  
-Scaling Policy: 
-•	Target tracking based on CPU utilization (70%)  
-Features: 
-•	Self-healing (replaces unhealthy instances)  
-•	High availability  
-  <img width="940" height="423" alt="image" src="https://github.com/user-attachments/assets/ba5881d5-687b-4f23-b1bb-297133173954" />
+Step 5: Creating the Lambda Function
+A Lambda function named image-processor was created.
+•	Runtime: Python 3.11 
+•	Memory: 512 MB 
+•	Timeout: 30 seconds 
 
- 
-HTTPS Configuration 
-Used AWS Certificate Manager 
-•	Listener: HTTPS (443)  
-•	SSL certificate attached  
-Advanced Features 
-•	Cross-Zone Load Balancing enabled  
-•	Sticky Sessions enabled (1 hour)  
-Security Configuration 
-Security Groups 
-ALB SG 
-•	Allow HTTPS (443) from Internet  
-App Server SG 
-•	Allow HTTP only from ALB SG  
-Bastion SG 
-•	Allow SSH (22) only from My IP  
- 
-Access Flow 
-User → ALB → EC2 (Private) 
-Admin → Bastion → EC2 
- 
-Validation & Testing 
-•	Accessed application via ALB DNS  
-                      
-•	Verified load balancing across instances  
-•	Tested auto scaling using load  
-•	Terminated instance → ASG recreated it  
-•	Verified HTTPS access  
- 
- 
- Key Concepts Used 
-•	High Availability (Multi-AZ)  
-•	Auto Scaling  
-•	Load Balancing  
-•	Secure Access (Bastion Host)  
-•	Data Encryption (EBS + KMS)  
-•	Object Storage (S3)  
-•	HTTPS Security  
- 
-Challenges Faced 
-(You can customize this section) 
-Example: 
-•	Incorrect route table association  
-•	Security group misconfiguration  
-•	Target group health check failures  
- 
-Conclusion 
-The project successfully demonstrates a scalable, secure, and highly available AWS architecture capable of handling production-level workloads. 
-It follows best practices like: 
-•	Multi-AZ deployment  
-•	Auto scaling  
-•	Secure networking  
-•	Encrypted storage  
- 
+
+
+Step 6: Configuring IAM Permissions
+An IAM execution role was attached to allow the Lambda function to access S3 buckets.
+<img width="940" height="499" alt="image" src="https://github.com/user-attachments/assets/f3d8b3f2-3ffd-4ba1-90e6-18bf8522b090" />
+
+
+Step 7: Creating Lambda Layer (Pillow)
+A Lambda layer was created to include the Pillow library for image processing.
+Steps performed:
+•	Installed Pillow using Docker 
+•	Packaged it into a ZIP file 
+•	Uploaded as Lambda layer 
+•	Attached to the function 
+<img width="940" height="412" alt="image" src="https://github.com/user-attachments/assets/9145dedf-1255-409d-8d75-b4224ee3fe7e" />
+
+
+Step 8: Adding S3 Trigger
+The Lambda function was configured to trigger automatically when a new object is uploaded to the raw bucket.
+
+
+Step 9: Writing Lambda Code
+The Lambda function performs the following tasks:
+•	Reads image from S3 
+•	Resizes it to 800x600 
+•	Adds a watermark 
+•	Uploads processed image 
+
+Step 10: Testing the Pipeline
+An image was uploaded to the raw bucket to test the pipeline.
+<img width="940" height="316" alt="image" src="https://github.com/user-attachments/assets/09bd9364-4dd1-490c-a629-b694239ffb39" />
+<img width="940" height="330" alt="image" src="https://github.com/user-attachments/assets/a2a03ecd-eb6a-403c-bae2-ada6a91f8a22" />
+
+
+6. Results
+The system worked successfully:
+•	Images were processed automatically 
+•	Lambda was triggered correctly 
+•	Processed images were stored in the destination bucket 
+
+10. Conclusion
+This project demonstrates how AWS serverless services can be used to build a scalable and automated media processing system.
+The solution is efficient, cost-effective, and suitable for real-world applications that handle large volumes of user-generated content.
+
 
